@@ -1303,8 +1303,8 @@
 
     if (state === STATES.PLAYING) {
       targetLane = pointer.x < W / 2
-        ? Math.min(2, targetLane + 1)
-        : Math.max(0, targetLane - 1);
+        ? Math.min(2, targetLane - 1)
+        : Math.max(0, targetLane + 1);
 
       laneCooldown = CONFIG.gameplay.laneSwitchDelay;
       return;
