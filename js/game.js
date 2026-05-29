@@ -17,11 +17,11 @@
     gameplay: {
       // Velocidade inicial dos objetos.
       // Menor = jogo mais fácil.
-      baseObjectSpeed: 3.0,
+      baseObjectSpeed: 3.2,
 
       // Intervalo inicial entre objetos.
       // Maior = aparecem menos objetos.
-      initialSpawnInterval: 1400,
+      initialSpawnInterval: 1200,
 
       // Intervalo mínimo entre objetos quando a dificuldade aumentar.
       minSpawnInterval: 650,
@@ -77,7 +77,7 @@
     transformation: {
       // Tempo total da transformação.
       // Aumente para demorar mais antes de pedir o nome.
-      duration: 4000,
+      duration: 4200,
 
       // Momento da transformação em que o dino cresce.
       flickerPhaseEnd: 0.42,
@@ -1303,8 +1303,8 @@
 
     if (state === STATES.PLAYING) {
       targetLane = pointer.x < W / 2
-        ? Math.max(0, targetLane - 1)
-        : Math.min(2, targetLane + 1);
+        ? Math.min(2, targetLane + 1)
+        : Math.max(0, targetLane - 1);
 
       laneCooldown = CONFIG.gameplay.laneSwitchDelay;
       return;
