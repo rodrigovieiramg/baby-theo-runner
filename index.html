@@ -19,6 +19,47 @@
     <input id="nameInput" maxlength="10" autocomplete="off" />
     <div id="loading">Carregando Baby Theo Runner...</div>
   </div>
-  <script src="js/game.js"></script>
+  
+  <!-- REGISTRO DO BANCO FIREBASE -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    orderBy,
+    limit
+  } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPEcFPp3FA29OT6IIdgc7r34rSCC0vJRk",
+    authDomain: "baby-theo-runner.firebaseapp.com",
+    projectId: "baby-theo-runner",
+    storageBucket: "baby-theo-runner.firebasestorage.app",
+    messagingSenderId: "578921013107",
+    appId: "1:578921013107:web:92d7da7fdc17a7d5472f06"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Disponibiliza globalmente para o game.js
+  window.db = db;
+  window.firebaseFirestore = {
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    orderBy,
+    limit
+  };
+
+  const gameScript = document.createElement("script");
+  gameScript.src = "js/game.js";
+  document.body.appendChild(gameScript);
+</script>
 </body>
 </html>

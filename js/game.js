@@ -259,7 +259,7 @@
     if (!audioUnlocked || musicStarted || !snd.music) return;
 
     snd.music.play()
-      .then(() => {
+      .then(async () => {
         musicStarted = true;
       })
       .catch(() => {});
@@ -325,20 +325,67 @@
   // =========================================================
   // RANKING
   // =========================================================
-  function loadRanking() {
+  function hasFirebaseRanking() {
+    return Boolean(window.db && window.firebaseFirestore);
+  }
+
+  function normalizeRankingItem(item) {
+    return {
+      name: String(item.name || item.nome || "SEM_NOME")
+        .toUpperCase()
+        .slice(0, CONFIG.ranking.maxNameLength),
+      score: Number(item.score || 0)
+    };
+  }
+
+  function sortAndLimitRanking(items) {
+    return items
+      .map(normalizeRankingItem)
+      .filter(item => Number.isFinite(item.score))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, CONFIG.ranking.maxEntries);
+  }
+
+  async function loadRanking() {
+    if (hasFirebaseRanking()) {
+      try {
+        const {
+          collection,
+          getDocs,
+          query,
+          orderBy,
+          limit
+        } = window.firebaseFirestore;
+
+        const rankingQuery = query(
+          collection(window.db, "ranking"),
+          orderBy("score", "desc"),
+          limit(CONFIG.ranking.maxEntries)
+        );
+
+        const snapshot = await getDocs(rankingQuery);
+        const data = snapshot.docs.map(doc => doc.data());
+
+        ranking = sortAndLimitRanking(data);
+        return ranking;
+      } catch (error) {
+        console.error("Erro ao carregar ranking do Firebase:", error);
+      }
+    }
+
     try {
       const raw = localStorage.getItem(CONFIG.ranking.storageKey) || "[]";
       const data = JSON.parse(raw) || [];
 
-      return data
-        .sort((a, b) => b.score - a.score)
-        .slice(0, CONFIG.ranking.maxEntries);
+      ranking = sortAndLimitRanking(data);
+      return ranking;
     } catch (_) {
-      return [];
+      ranking = [];
+      return ranking;
     }
   }
 
-  function saveRanking() {
+  function saveRankingLocal() {
     localStorage.setItem(
       CONFIG.ranking.storageKey,
       JSON.stringify(ranking.slice(0, CONFIG.ranking.maxEntries))
@@ -350,18 +397,34 @@
       value > ranking[ranking.length - 1].score;
   }
 
-  function addScore(name, value) {
+  async function addScore(name, value) {
     const cleanName = (name.trim().toUpperCase() || "SEM_NOME")
       .slice(0, CONFIG.ranking.maxNameLength);
 
-    ranking.push({
+    const newScore = {
       name: cleanName,
-      score: Math.floor(value)
-    });
+      score: Math.floor(value),
+      data: new Date()
+    };
 
-    ranking.sort((a, b) => b.score - a.score);
-    ranking = ranking.slice(0, CONFIG.ranking.maxEntries);
-    saveRanking();
+    if (hasFirebaseRanking()) {
+      try {
+        const {
+          collection,
+          addDoc
+        } = window.firebaseFirestore;
+
+        await addDoc(collection(window.db, "ranking"), newScore);
+        await loadRanking();
+        return;
+      } catch (error) {
+        console.error("Erro ao salvar ranking no Firebase:", error);
+      }
+    }
+
+    ranking.push(newScore);
+    ranking = sortAndLimitRanking(ranking);
+    saveRankingLocal();
   }
 
   // =========================================================
@@ -1327,14 +1390,14 @@
     }
   }
 
-  function confirmName() {
+  async function confirmName() {
     if (state !== STATES.ENTER_NAME) {
       return;
     }
 
     if (!saved) {
-      addScore(nameText, lastScore);
       saved = true;
+      await addScore(nameText, lastScore);
     }
 
     hideInput();
@@ -1455,7 +1518,7 @@
     requestAnimationFrame(loop);
   }
 
-  function boot() {
+  async function boot() {
     Promise.all(
       Object.entries(imageFiles).map(([name, file]) => loadImage(name, file))
     )
@@ -1486,7 +1549,8 @@
         loadSounds();
         setupEvents();
 
-        ranking = loadRanking();
+        ranking = [];
+        await loadRanking();
         resetGame();
 
         loading.style.display = "none";
