@@ -318,6 +318,11 @@
   let shakeY;
 
   let mouse = { x: 0, y: 0 };
+
+  // Usado para diferenciar toque simples de arrastar/swipe no celular.
+  let touchStartX = 0;
+  let touchStartY = 0;
+
   const keys = new Set();
 
   // =========================================================
@@ -1283,6 +1288,15 @@
     hideInput();
   }
 
+  function moveToLane(newLane) {
+    if (laneCooldown > 0) {
+      return;
+    }
+
+    targetLane = Math.max(0, Math.min(2, newLane));
+    laneCooldown = CONFIG.gameplay.laneSwitchDelay;
+  }
+
   function tap(pointer) {
     unlockAudio();
     startMusic();
@@ -1302,11 +1316,12 @@
     }
 
     if (state === STATES.PLAYING) {
-      targetLane = pointer.x < W / 2
-        ? Math.min(2, targetLane - 1)
-        : Math.max(0, targetLane + 1);
+      if (pointer.x < W / 2) {
+        moveToLane(targetLane - 1);
+      } else {
+        moveToLane(targetLane + 1);
+      }
 
-      laneCooldown = CONFIG.gameplay.laneSwitchDelay;
       return;
     }
 
@@ -1351,7 +1366,39 @@
 
     canvas.addEventListener("touchstart", event => {
       event.preventDefault();
-      tap(point(event));
+
+      const pointer = point(event);
+      touchStartX = pointer.x;
+      touchStartY = pointer.y;
+    }, { passive: false });
+
+    canvas.addEventListener("touchend", event => {
+      event.preventDefault();
+
+      if (state !== STATES.PLAYING) {
+        tap({ x: touchStartX, y: touchStartY });
+        return;
+      }
+
+      const touch = event.changedTouches[0];
+      const rect = canvas.getBoundingClientRect();
+
+      const endX = (touch.clientX - rect.left) * W / rect.width;
+      const deltaX = endX - touchStartX;
+
+      // Toque curto: usa lado esquerdo/direito da tela.
+      if (Math.abs(deltaX) < 30) {
+        tap({ x: touchStartX, y: touchStartY });
+        return;
+      }
+
+      // Swipe: arrastar para esquerda vai para esquerda.
+      // Arrastar para direita vai para direita.
+      if (deltaX < -30) {
+        moveToLane(targetLane - 1);
+      } else if (deltaX > 30) {
+        moveToLane(targetLane + 1);
+      }
     }, { passive: false });
 
     window.addEventListener("keydown", event => {
