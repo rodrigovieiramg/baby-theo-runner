@@ -259,7 +259,7 @@
     if (!audioUnlocked || musicStarted || !snd.music) return;
 
     snd.music.play()
-      .then(async () => {
+      .then(() => {
         musicStarted = true;
       })
       .catch(() => {});
@@ -1503,7 +1503,7 @@
     });
   }
 
-  // =========================================================
+  // ==========================================================
   // LOOP / BOOT
   // =========================================================
   let last = performance.now();
@@ -1522,7 +1522,7 @@
     Promise.all(
       Object.entries(imageFiles).map(([name, file]) => loadImage(name, file))
     )
-      .then(() => {
+      .then(async () => {
         crawlFrames = [
           img.baby_crawl_0,
           img.baby_crawl_1,
